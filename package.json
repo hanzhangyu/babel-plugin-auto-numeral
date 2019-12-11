@@ -1,0 +1,39 @@
+{
+  "name": "babel-plugin-auto-numeral",
+  "version": "0.0.1-beta",
+  "description": "use numeral automatically",
+  "author": "paulhan <zhangyu.han@outlook.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hanzhangyu/babel-plugin-auto-numeral"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "numeral",
+    "ieee754",
+    "babel"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.7.4",
+    "@commitlint/cli": "^8.2.0",
+    "@commitlint/config-conventional": "^8.2.0",
+    "coveralls": "^3.0.9",
+    "eslint": "^6.7.1",
+    "eslint-config-prettier": "^6.7.0",
+    "eslint-plugin-jest": "^23.0.5",
+    "eslint-plugin-prettier": "^3.1.1",
+    "jest": "^24.9.0",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1"
+  },
+  "dependencies": {
+    "@babel/types": "^7.7.4"
+  },
+  "files": [
+    "src"
+  ]
+}
