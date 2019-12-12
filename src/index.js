@@ -6,61 +6,122 @@ const OPERATOR_MAP = {
   '*': 'multiply',
   '/': 'divide',
 };
+
+/**
+ * resolve precision
+ * @param node
+ * @param {number|null} precision
+ * @returns {CallExpression|*}
+ */
+const wrapPrecision = (node, precision) => {
+  if (precision === undefined || precision === null) return node;
+  return t.callExpression(
+    t.memberExpression(
+      node.type === 'NumericLiteral' ? t.parenthesizedExpression(node) : node,
+      t.identifier('toFixed'),
+    ),
+    [t.numericLiteral(precision)],
+  );
+};
+
+/**
+ * get the top callee`s id for chaining call
+ * @param node
+ * @returns {string|null}
+ */
+function getRealCalleeFromCallExpression(node) {
+  /* istanbul ignore next */
+  if (node.type !== 'CallExpression') return null; // this line is never reached, bcz every argument was wrapped with the numeral, (for edge case I am not found)
+  if (node.callee.type === 'Identifier') return node.callee.name;
+  /* istanbul ignore else */
+  if (node.callee.type === 'MemberExpression')
+    return getRealCalleeFromCallExpression(node.callee.object);
+  /* istanbul ignore next */
+  return null; // this line is never reached, bcz callee type is Identifier|MemberExpression, (for edge case I am not found)
+}
+
+/**
+ * convert numeral instance to number
+ * @param node
+ * @param opts
+ * @returns {CallExpression|*}
+ */
+function unwrapNumeral(node, opts) {
+  /* istanbul ignore else */
+  if (getRealCalleeFromCallExpression(node) === opts.numeralName) {
+    // do not use toFixed, bcz precision resolved in numeral wrap
+    return wrapGetNumeralValue(node);
+  }
+  /* istanbul ignore next */
+  return node; // this line is never reached, bcz every argument was wrapped with the numeral, (for edge case I am not found)
+}
+
+/**
+ * wrap with .value()
+ * @param node
+ * @returns {CallExpression}
+ */
+function wrapGetNumeralValue(node) {
+  return t.callExpression(t.memberExpression(node, t.identifier('value')), []);
+}
+
+/**
+ * convert number to numeral instance
+ * @param node
+ * @param opts
+ * @returns {CallExpression}
+ */
+function wrapNumeral(node, opts) {
+  return t.callExpression(t.identifier(opts.numeralName), [
+    wrapPrecision(node, opts.precision),
+  ]);
+}
+
 module.exports = function() {
-  const wrapPrecision = (node, precision) => {
-    if (precision === undefined || precision === null) return node;
-    return t.callExpression(
-      t.memberExpression(
-        node.type === 'NumericLiteral' ? t.parenthesizedExpression(node) : node,
-        t.identifier('toFixed'),
-      ),
-      [t.numericLiteral(precision)],
-    );
-  };
   const expressionVisitor = {
-    'NumericLiteral|UnaryExpression'(path, state) {
-      if (path.parent.type === 'CallExpression') {
-        // Math.cos(6)
-        path.replaceWith(wrapPrecision(path.node, state.opts.precision));
-      } else {
-        path.replaceWith(
-          t.callExpression(t.identifier('numeral'), [
-            wrapPrecision(path.node, state.opts.precision),
-          ]),
-        );
-      }
+    'NumericLiteral|UnaryExpression|UpdateExpression'(path, state) {
+      // convert to numeral(xxx.toFixed(xxx))
+      path.replaceWith(wrapNumeral(path.node, state.opts));
       path.skip();
-      // path.stop(); // stop 之后后面的兄弟节点也会停止
     },
     Identifier(path, state) {
-      // a * 7 -> (a).toFixed + ... 这种情况需要， 其他情况 Identifier 不为变量值（-a, 这种情况在 UnaryExpression 处理了）
-      if (path.parent.type !== 'BinaryExpression') return;
-      if (path.parent.type === 'CallExpression') {
-        path.replaceWith(wrapPrecision(path.node, state.opts.precision));
-      } else {
-        path.replaceWith(
-          t.callExpression(t.identifier('numeral'), [
-            wrapPrecision(path.node, state.opts.precision),
-          ]),
-        );
+      // skip function name
+      if (
+        path.parent.type === 'CallExpression' &&
+        path.parent.callee === path.node
+      ) {
+        return;
       }
+      // skip chaining
+      if (path.parent.type === 'MemberExpression') {
+        return;
+      }
+      path.replaceWith(wrapNumeral(path.node, state.opts));
       path.skip();
     },
-    BinaryExpression: {
-      exit(path) {
-        let rightNode = path.node.right;
+    MemberExpression: {
+      exit(path, state) {
         if (
-          rightNode.type === 'CallExpression' &&
-          rightNode.callee.name === 'numeral'
-        )
-          rightNode = rightNode.arguments[0];
+          path.parent.type === 'MemberExpression' ||
+          path.parent.type === 'CallExpression'
+        ) {
+          return;
+        }
+        // resolve chaining value, like a.b.c (not callee or chaining object)
+        path.replaceWith(wrapNumeral(path.node, state.opts));
+        path.skip();
+      },
+    },
+    BinaryExpression: {
+      exit(path, state) {
+        let rightNode = path.node.right;
         path.replaceWith(
           t.callExpression(
             t.memberExpression(
               path.node.left,
               t.identifier(OPERATOR_MAP[path.node.operator]),
             ),
-            [rightNode],
+            [unwrapNumeral(rightNode, state.opts)],
           ),
         );
         path.skip();
@@ -68,16 +129,11 @@ module.exports = function() {
     },
     CallExpression: {
       exit(path, state) {
-        if (path.node.arguments[0] && path.node.arguments[0].ca) {
-          // path.replaceWith(
-          //   t.callExpression(
-          //     t.memberExpression(node, t.identifier('value')),
-          //     [],
-          //   ),
-          // );
-        } else {
-          path.replaceWith(wrapPrecision(path.node, state.opts.precision));
-        }
+        // unwrap numeral for arguments
+        path.node.arguments = path.node.arguments.map(node =>
+          unwrapNumeral(node, state.opts),
+        );
+        path.replaceWith(wrapNumeral(path.node, state.opts));
         path.skip();
       },
     },
@@ -85,13 +141,11 @@ module.exports = function() {
   return {
     visitor: {
       CallExpression(path, state) {
-        if (path.node.callee.name !== (state.opts.numeralName || 'numeral'))
-          return;
+        state.opts.numeralName = state.opts.numeralName || 'numeral';
+        if (path.node.callee.name !== state.opts.numeralName) return;
         path.traverse(expressionVisitor, state);
         const node = path.node.arguments[0];
-        path.replaceWith(
-          t.callExpression(t.memberExpression(node, t.identifier('value')), []),
-        );
+        path.replaceWith(wrapGetNumeralValue(node));
         path.stop();
       },
     },

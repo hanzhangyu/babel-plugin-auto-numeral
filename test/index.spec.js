@@ -36,7 +36,7 @@ function clearEOL(str) {
 }
 
 const fixturePath = path.resolve(__dirname, 'fixtures');
-const files = fs.readdirSync(fixturePath).filter(name => name === 'base-usage');
+const files = fs.readdirSync(fixturePath); // use jest -t
 files.forEach(function(fixtureName) {
   test(`should transform ${fixtureName} success`, async function() {
     const { input, output, options } = await getFixtureFiles(fixtureName);

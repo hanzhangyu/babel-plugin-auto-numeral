@@ -1,2 +1,2 @@
 var b = 1;
-var a = numeral((-0.7).toFixed(2)).multiply(Math.tan(Math.acos((0.7).toFixed(2)).toFixed(2)).toFixed(2)).add(b.toFixed(2)).add((-c).toFixed(2)).value();
+var result = numeral((-0.7).toFixed(2)).multiply(numeral(Math.tan(numeral(Math.acos(numeral((0.7).toFixed(2)).value()).toFixed(2)).value()).toFixed(2)).value()).add(numeral(b.toFixed(2)).value()).add(numeral((-c).toFixed(2)).value()).add(numeral(B().toFixed(2)).value()).add(numeral((++c).toFixed(2)).value()).value();

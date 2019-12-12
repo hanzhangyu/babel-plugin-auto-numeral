@@ -1,2 +1,1 @@
-var b = 1;
-var a = numeral(b).add(numeral(-0.7).multiply(Math.tan(Math.acos(0.7))).value()).add(-c).value();
+var result = numeral(1.3).add(numeral(0.7).multiply(numeral(7).value()).value()).subtract(numeral(8).divide(numeral(2).value()).value()).value();

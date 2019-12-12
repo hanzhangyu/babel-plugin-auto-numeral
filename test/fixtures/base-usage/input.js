@@ -1,2 +1,1 @@
-var b = 1;
-var a = numeral(b + -0.7 * Math.tan(Math.acos(0.7)) + -c);
+var result = numeral(1.3 + 0.7 * 7 - 8 / 2);
