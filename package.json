@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-auto-numeral",
-  "version": "0.0.1-beta",
+  "version": "0.0.1",
   "description": "use numeral automatically",
   "author": "paulhan <zhangyu.han@outlook.com>",
   "repository": {
@@ -28,10 +28,14 @@
     "eslint-plugin-prettier": "^3.1.1",
     "jest": "^24.9.0",
     "lint-staged": "^9.5.0",
+    "numeral": "^2.x",
     "prettier": "^1.19.1"
   },
   "dependencies": {
     "@babel/types": "^7.7.4"
+  },
+  "peerDependencies": {
+    "numeral": "^2.x"
   },
   "files": [
     "src"

@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
 const babel = require('@babel/core');
+const numeral = require('numeral');
 
 const readFileAsync = promisify(fs.readFile);
 const accessAsync = promisify(fs.access);
@@ -18,16 +19,16 @@ async function getFixtureFiles(fixtureName) {
       readFileAsync(path.resolve(fixturePath, fixtureName, filename)),
     ),
   );
-  const optionPath = path.resolve(fixturePath, fixtureName, 'options.js');
-  let options = {};
+  const configPath = path.resolve(fixturePath, fixtureName, 'config.js');
+  let config = {};
   try {
-    await accessAsync(optionPath);
-    options = require(optionPath);
+    await accessAsync(configPath);
+    config = require(configPath);
   } catch (e) {}
   return {
     input: input.toString(),
     output: output.toString(),
-    options,
+    config,
   };
 }
 
@@ -39,7 +40,13 @@ const fixturePath = path.resolve(__dirname, 'fixtures');
 const files = fs.readdirSync(fixturePath); // use jest -t
 files.forEach(function(fixtureName) {
   test(`should transform ${fixtureName} success`, async function() {
-    const { input, output, options } = await getFixtureFiles(fixtureName);
-    expect(clearEOL(transform(input, options))).toEqual(clearEOL(output));
+    const { input, output, config } = await getFixtureFiles(fixtureName);
+    const transformedCode = transform(input, config.options);
+    expect(clearEOL(transformedCode)).toEqual(clearEOL(output));
+    if (config.result) {
+      const { value } = config.result;
+      eval(transformedCode);
+      expect(result).toEqual(value);
+    }
   });
 });
