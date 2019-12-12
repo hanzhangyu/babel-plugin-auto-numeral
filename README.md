@@ -42,6 +42,22 @@ key | type | description
 precision | number/null/undefined | to pretend human calculate, this option will fix precision after every step
 numeralName | string | transform the function named with the numeralName
 
+## ⚠Warn
+
+The expression out of numeral will be not converted, So there is a wrong example:
+```js
+import numeral from 'numeral';
+// wrong
+const square = (n) => n * n;
+numeral(square(3.3)); // 10.889999999999999
+
+// right
+const square = (n) => numeral(n * n);
+numeral(square(3.3));
+
+// right
+numeral(3.3 * 3.3)
+```
 
 [action-img]: https://github.com/hanzhangyu/babel-plugin-auto-numeral/workflows/ci/badge.svg
 [action-url]: https://github.com/hanzhangyu/babel-plugin-auto-numeral/actions
